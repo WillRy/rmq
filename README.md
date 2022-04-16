@@ -34,8 +34,7 @@ $rmq->publish("fila", [
 
 **Classe de consumidor**
 
-A classe do consumidor deve extender da **RMQ** e implementar
-a interface **Worker**.
+A classe do consumidor deve implementar a interface **Worker**.
 
 A função **handle** executa o processamento e a função **error** é
 chamada caso o item tenha tido erro mesmo após as retentativas.
@@ -43,8 +42,9 @@ chamada caso o item tenha tido erro mesmo após as retentativas.
 ```php
 <?php
 
-class WorkerTest extends \WillRy\RMQ\RMQ implements \WillRy\RMQ\Worker
+class WorkerTest implements \WillRy\RMQ\Worker
 {
+
     public function handle(array $data = [])
     {
         try {
@@ -53,11 +53,12 @@ class WorkerTest extends \WillRy\RMQ\RMQ implements \WillRy\RMQ\Worker
 
             $json = json_encode($data);
 
-            print("Success: {$json}" . PHP_EOL);
+            print("Success: $json" . PHP_EOL);
         } catch (\Exception $e) {
             print("Retrying: {$data["id"]}" . PHP_EOL);
             throw $e;
         }
+
     }
 
     public function error($data)
@@ -76,10 +77,12 @@ require __DIR__."/../vendor/autoload.php";
 
 require __DIR__."/WorkerTest.php";
 
-$rmq = new WorkerTest("redis", 6379);
+$rmq = new \WillRy\RMQ\RMQ("redis", 6379);
+
+$worker = new WorkerTest();
 
 /** Queue work */
-$rmq->consumeWorker("fila", 1, true, 3);
+$rmq->consumeWorker($worker, "fila", 1, true, 3);
 
 /** Delete the queue */
 //$rmq->excludeQueue("fila");

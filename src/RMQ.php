@@ -23,18 +23,18 @@ class RMQ
     }
 
 
-    public function consumeWorker(string $queue, $delay = 5, $requeue = false, $max_tries = 3)
+    public function consumeWorker(Worker $workerClass, string $queue, $delay = 5, $requeue = false, $max_tries = 3)
     {
         while (true) {
             $msg = $this->instance->rpop($queue);
             $data = json_decode($msg, true);
             try {
-                if ($data) static::handle($data);
+                if ($data) $workerClass->handle($data);
 
             } catch (\Exception $e) {
                 $requeued = $this->analyzeRequeue($data, $queue, $requeue, $max_tries);
 
-                if (!$requeued) static::error($data);
+                if (!$requeued) $workerClass->error($data);
             }
             sleep($delay);
         }

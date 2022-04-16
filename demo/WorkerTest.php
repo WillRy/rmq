@@ -1,6 +1,6 @@
 <?php
 
-class WorkerTest extends \WillRy\RMQ\RMQ implements \WillRy\RMQ\Worker
+class WorkerTest implements \WillRy\RMQ\Worker
 {
 
     public function handle(array $data = [])
