@@ -4,6 +4,12 @@ Um gerenciador de filas com Redis, permitindo o uso de workers e número de tent
 
 ## Como utilizar?
 
+**Instalar via composer**
+
+```shell
+composer require willry/rmq
+```
+
 O código de exemplo está na pasta **demo**
 
 ### Publicador
