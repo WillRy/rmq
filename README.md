@@ -4,6 +4,8 @@ Um gerenciador de filas com Redis, permitindo o uso de workers e número de tent
 
 ## Como utilizar?
 
+O código de exemplo está na pasta **demo**
+
 ### Publicador
 
 ```php
@@ -14,7 +16,7 @@ require __DIR__."/../vendor/autoload.php";
 $rmq = new \WillRy\RMQ\RMQ();
 
 $rmq->publish("fila", [
-        "id" => $i,
+        "id" => rand(),
         "payload" => [
             "name" => "Fulano"
         ]
@@ -45,7 +47,7 @@ class WorkerTest extends \WillRy\RMQ\RMQ implements \WillRy\RMQ\Worker
 
             $json = json_encode($data);
 
-            print("Success: $json" . PHP_EOL);
+            print("Success: {$json}" . PHP_EOL);
         } catch (\Exception $e) {
             print("Retrying: {$data["id"]}" . PHP_EOL);
             throw $e;
@@ -68,15 +70,11 @@ require __DIR__."/../vendor/autoload.php";
 
 require __DIR__."/WorkerTest.php";
 
-$rmq = new WorkerTest();
+$rmq = new WorkerTest("redis", 6379);
 
-$delaySeconds = 5;
+/** Queue work */
+$rmq->consumeWorker("fila", 1, true, 3);
 
-// adiciona novamente na fila em caso de erro
-$requeue = true;
-
-//numero máximo de retentativa
-$maxretries = 3;
-
-$rmq->consumeWorker("fila", $delaySeconds, $maxretries);
+/** Delete the queue */
+//$rmq->excludeQueue("fila");
 ```

@@ -6,4 +6,8 @@ require __DIR__."/WorkerTest.php";
 
 $rmq = new WorkerTest("redis", 6379);
 
-$rmq->consumeWorker("fila", 5, true, 3);
+/** Queue work */
+$rmq->consumeWorker("fila", 1, true, 3);
+
+/** Delete the queue */
+//$rmq->excludeQueue("fila");

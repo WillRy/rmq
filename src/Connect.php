@@ -36,16 +36,12 @@ class Connect
     public static function getInstance(): ?Client
     {
         if (empty(self::$instance)) {
-            try {
-                self::$instance = new Client([
-                    'scheme' => self::$opt["scheme"],
-                    'host' => self::$opt["host"],
-                    'port' => self::$opt["port"],
-                    'persistent' => self::$opt["persistent"],
-                ]);
-            } catch (\PDOException $exception) {
-                die('Connection error');
-            }
+            self::$instance = new Client([
+                'scheme' => self::$opt["scheme"],
+                'host' => self::$opt["host"],
+                'port' => self::$opt["port"],
+                'persistent' => self::$opt["persistent"],
+            ]);
         }
 
         return self::$instance;

@@ -32,7 +32,7 @@ class RMQ
                 if ($data) static::handle($data);
 
             } catch (\Exception $e) {
-                $requeued = $this->processError($data, $queue, $requeue, $max_tries);
+                $requeued = $this->analyzeRequeue($data, $queue, $requeue, $max_tries);
 
                 if (!$requeued) static::error($data);
             }
@@ -40,22 +40,25 @@ class RMQ
         }
     }
 
-    public function processError($data, $queue, $requeue, $max_tries)
+    public function analyzeRequeue($data, $queue, $requeue, $max_tries)
     {
-        if (!empty($data)) {
-            if (empty($data["tries"])) $data["tries"] = 1;
+        if (empty($data)) return false;
 
-            $notMax = (int)$data["tries"] < $max_tries;
+        if (empty($data["tries"])) $data["tries"] = 1;
 
-            if ($requeue && $notMax) {
-                $data["tries"] = (int)$data["tries"] + 1;
-                $this->publish($queue, $data);
-                return true;
-            }
+        $notMax = (int)$data["tries"] < $max_tries;
 
-            return false;
+        if ($requeue && $notMax) {
+            $data["tries"] = (int)$data["tries"] + 1;
+            $this->publish($queue, $data);
+            return true;
         }
 
         return false;
+    }
+
+    public function excludeQueue($queue)
+    {
+        return $this->instance->del($queue);
     }
 }
