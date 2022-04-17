@@ -15,7 +15,7 @@ class Connect
     private static $opt = [];
 
     /**
-     * @var Client
+     * @var Redis
      */
     private static $instance;
 
@@ -33,15 +33,15 @@ class Connect
     {
     }
 
-    public static function getInstance(): ?Client
+    public static function getInstance(): ?\Redis
     {
         if (empty(self::$instance)) {
-            self::$instance = new Client([
-                'scheme' => self::$opt["scheme"],
-                'host' => self::$opt["host"],
-                'port' => self::$opt["port"],
-                'persistent' => self::$opt["persistent"],
-            ]);
+            $redis = new \Redis();
+            $redis->pconnect(
+                self::$opt["host"],
+                self::$opt["port"]
+            );
+            self::$instance = $redis;
         }
 
         return self::$instance;

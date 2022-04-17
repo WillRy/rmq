@@ -2,6 +2,17 @@
 
 Um gerenciador de filas com Redis, permitindo o uso de workers e número de tentativas de processamento em caso de erro
 
+O gerenciador de filas permite utilizar as filas com dois tipos de dados:
+
+- List
+- Set
+
+O List tem se mostrado **mais performático** para a **"entrada"** e **"saída"**
+de itens, mas **lento** para **pesquisas** e **remoção**
+
+O Set tem se mostrado **menos performático** para a **"entrada"** e **"saída"**
+de itens, mas **rapido** para **pesquisas** e **remoção**
+
 ## Como utilizar?
 
 **Instalar via composer**
@@ -10,20 +21,27 @@ Um gerenciador de filas com Redis, permitindo o uso de workers e número de tent
 composer require willry/rmq
 ```
 
-O código de exemplo está na pasta **demo**
+Na pasta **demo** é possível ver exemplos de uso de **list** e **set**
+
+Tendo os arquivos:
+
+- Consumo: consumer.php
+- Publicar: publisher.php
+- Manipular: manipulate.php
 
 ### Publicador
 
 ```php
 <?php
 
-require __DIR__."/../vendor/autoload.php";
+require __DIR__."/vendor/autoload.php";
 
 $rmq = new \WillRy\RMQ\RMQ();
 
 $rmq->publish("fila", [
         "id" => rand(),
         "payload" => [
+            "id" => rand(),
             "name" => "Fulano"
         ]
 ]);
@@ -73,7 +91,7 @@ class WorkerTest implements \WillRy\RMQ\Worker
 ```php
 <?php
 
-require __DIR__."/../vendor/autoload.php";
+require __DIR__."/vendor/autoload.php";
 
 require __DIR__."/WorkerTest.php";
 
@@ -84,6 +102,4 @@ $worker = new WorkerTest();
 /** Queue work */
 $rmq->consumeWorker($worker, "fila", 1, true, 3);
 
-/** Delete the queue */
-//$rmq->excludeQueue("fila");
 ```

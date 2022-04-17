@@ -23,6 +23,8 @@ RUN docker-php-ext-install mysqli pdo_mysql bcmath exif gd intl zip sockets
 
 RUN pecl install xdebug imagick && docker-php-ext-enable xdebug imagick
 
+RUN pecl install redis-5.0.1 && docker-php-ext-enable redis
+
 # atualiza timezone do php
 # RUN pecl install timezonedb
 # RUN docker-php-ext-enable timezonedb
