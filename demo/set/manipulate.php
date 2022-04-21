@@ -3,24 +3,24 @@
 require __DIR__."/../../vendor/autoload.php";
 
 
-$rmq = new \WillRy\RMQ\RMQ("redis", 6379);
+$rmq = new \WillRy\RMQ\QueueSet("redis", 6379);
 
 /** List pages */
-$pages = $rmq->getSetPages("set_list");
+$pages = $rmq->getPages("queue_set");
 
 /** List paginated */
 $page = 1;
 $perPage = 10;
-$all = $rmq->getSet("set_list", 1, 10);
+$all = $rmq->getPaginated("queue_set", 1, 10);
 
 /** Get list item by id */
-$byID = $rmq->getSetByID("set_list", 200, 1);
+$byID = $rmq->getByID("queue_set", 1, 1);
 
 /** Get list item by field */
-$byField = $rmq->getSetByField("set_list", "id", 200, 1);
+$byField = $rmq->getByField("queue_set", "id", 1, 1);
 
 /** Remove item by ID */
-$removed = $rmq->removeSetByID("set_list", 200);
+$removed = $rmq->removeByID("queue_set", 1);
 
 
 

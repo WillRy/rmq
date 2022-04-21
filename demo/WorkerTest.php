@@ -7,11 +7,9 @@ class WorkerTest implements \WillRy\RMQ\Worker
     {
         try {
             /** Erro fake para simular o mecanismo de retentativa */
-            throw new \Exception("Erro");
+            if(rand() % 2 === 0) throw new \Exception("Erro");
 
-            $json = json_encode($data);
-
-            print("Success: $json" . PHP_EOL);
+            print("Success: {$data['id']}" . PHP_EOL);
         } catch (\Exception $e) {
             print("Retrying: {$data["id"]}" . PHP_EOL);
             throw $e;

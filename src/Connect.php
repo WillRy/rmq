@@ -14,10 +14,8 @@ class Connect
      */
     private static $opt = [];
 
-    /**
-     * @var Redis
-     */
-    private static $instance;
+    /** @var Client */
+    private static $instanceRedis;
 
     /**
      * Connect constructor. Private singleton
@@ -33,18 +31,18 @@ class Connect
     {
     }
 
-    public static function getInstance(): ?\Redis
+    public static function getInstancePredis(): ?Client
     {
-        if (empty(self::$instance)) {
-            $redis = new \Redis();
-            $redis->pconnect(
-                self::$opt["host"],
-                self::$opt["port"]
-            );
-            self::$instance = $redis;
-        }
+        if (empty(self::$instanceRedis)) {
+            $redis = new Client([
+                'host' => self::$opt["host"],
+                'port' => self::$opt["port"],
+                'persistent' => 1
+            ]);
 
-        return self::$instance;
+            self::$instanceRedis = $redis;
+        }
+        return self::$instanceRedis;
     }
 
     public static function config($host, $port = 6379, $persistent = "1")

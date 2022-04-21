@@ -38,7 +38,7 @@ services:
       - app-network
 
   redis:
-    image: redis
+    image: redislabs/rejson:latest
     container_name: redis
     hostname: redis
     ports:

@@ -22,6 +22,9 @@
   },
   "require": {
     "predis/predis": "^1.1",
-    "ext-json": "*"
+    "ext-json": "*",
+    "macfja/redisearch": "^2.1",
+    "averias/phpredis-json": "^1.4",
+    "ext-redis": "*"
   }
 }
