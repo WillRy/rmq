@@ -1,14 +1,16 @@
 <?php
 
-require __DIR__."/../../vendor/autoload.php";
+use WillRy\RMQ\QueueSet;
 
-require __DIR__."/../WorkerTest.php";
+require __DIR__ . "/../../vendor/autoload.php";
 
-$rmq = new \WillRy\RMQ\QueueSet("redis", 6379);
+require __DIR__ . "/../WorkerTest.php";
+
+$rmq = new QueueSet("set", "redis", 6379);
 
 $worker = new WorkerTest();
 
 /** Queue work */
 
-$rmq->consume($worker, "queue_set", 1, true, 3);
+$rmq->consume($worker, 1, true, 3);
 

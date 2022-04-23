@@ -10,7 +10,7 @@ class WorkerTest implements \WillRy\RMQ\Worker
             if(rand() % 2 === 0) throw new \Exception("Erro");
 
             print("Success: {$data['id']}" . PHP_EOL);
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             print("Retrying: {$data["id"]}" . PHP_EOL);
             throw $e;
         }

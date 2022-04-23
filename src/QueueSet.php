@@ -3,41 +3,62 @@
 namespace WillRy\RMQ;
 
 
-use Predis\Collection\Iterator;
+use Exception;
 
 class QueueSet extends RMQ
 {
 
-    public function publish(string $queue, array $payload)
+    public function publish(array $payload)
     {
+
         if (empty($payload["tries"])) $payload["tries"] = 1;
-        $count = $this->getCount($queue) + $payload["id"];
+        $count = $this->getCount() + $payload["id"];
 
         $data = $this->encode($payload);
+
         $this->instance
             ->transaction()
-            ->hmset($payload["id"], $data)
-            ->zAdd($queue, [json_encode($data) => $count])
+            ->hmset($this->getHashName($payload["id"]), $data)
+            ->zAdd($this->queue, [json_encode($data) => $count])
             ->execute();
     }
 
-    public function consume(Worker $workerClass, string $queue, $delay = 5, $requeue = false, $max_tries = 3)
+    public function getCount()
+    {
+        return (int)$this->instance->zcount($this->queue, '-inf', '+inf');
+    }
+
+    public function consume(Worker $workerClass, $delay = 5, $requeue = false, $max_tries = 3)
     {
         while (true) {
+
             $data = null;
-            $msg = $this->instance->executeRaw(["zpopmin", $queue, 1]);
-            $data = $this->decode($msg);
-            if (!empty($data)) $this->removeByID($queue, $data["id"]);
+            $msg = $this->instance->executeRaw(["zpopmin", $this->queue, 1]);
+
+            //no exists in set
+            if (empty($msg)) continue;
+
+            //fail to decode
+            $msgJSON = $this->decode($msg);
+
+            if (empty($msgJSON)) continue;
+
+            //fail to get data
+            $data = $this->getByID($msgJSON["id"]);
+            if (empty($data)) continue;
 
             try {
-                if ($data) $workerClass->handle($data);
+                //delete item from queue
+                $this->removeByID($data["id"]);
 
-            } catch (\Exception $e) {
-                $requeued = $this->analyzeRequeue($data, $queue, $requeue, $max_tries, true);
+                $workerClass->handle($data);
+
+            } catch (Exception $e) {
+                $requeued = $this->analyzeRequeue($data, $requeue, $max_tries);
 
                 try {
                     if (!$requeued) $workerClass->error($data);
-                } catch (\Exception $e) {
+                } catch (Exception $e) {
 
                 }
             }
@@ -45,19 +66,30 @@ class QueueSet extends RMQ
         }
     }
 
-    public function getPaginated($queue, $page = 1, $perPage = 10)
+    public function getByID($id)
     {
-        $page = $page < 1 ? 1 : $page;
-        $offset = ($page - 1) * $perPage;
-        $max = $page * $perPage;
-        return $this->instance->zrange($queue, $offset, $max);
+        return $this->instance->hgetall($this->getHashName($id));
     }
 
-    public function getSearch($queue, $value, $count = 10)
+    public function removeByID(string $id)
+    {
+        $arrayhash = $this->getByID($id);
+
+
+        if (!$arrayhash) return true;
+
+        $data = $this->encode($arrayhash);
+        if (!$data) return $this->instance->del($this->getHashName($id));
+
+        $this->instance->transaction()->del($this->getHashName($id))->zrem($this->queue, $data)->execute();
+        return true;
+    }
+
+    public function getSearch($value, $count = 10)
     {
         $searchResults = [];
 
-        $results = $this->instance->zscan($queue, 0, [
+        $results = $this->instance->zscan($this->queue, 0, [
             'MATCH' => "*$value*",
             'COUNT' => $count
         ]);
@@ -74,61 +106,76 @@ class QueueSet extends RMQ
         return $searchResults;
     }
 
-    public function getCount($queue)
+    public function removeOldHash()
     {
-        return $this->instance->zcount($queue, '-inf', '+inf');
-    }
 
-    public function getPages($queue, $perPage = 10)
-    {
-        $total = $this->getCount($queue);
-        if ($total) return ceil($total / $perPage);
-        return 0;
-    }
+        $keys = $this->instance->scan(0, [
+            "MATCH" => "queue:{$this->queueName}:*",
+            "COUNT" => 9999999
+        ]);
 
-    public function getByID($id)
-    {
-        return $this->instance->hgetall($id);
-    }
+        $keys = array_filter($keys, function ($item) {
+            return is_array($item);
+        }, ARRAY_FILTER_USE_BOTH);
 
-    public function removeByID($queue, string $id)
-    {
-        $arrayhash = $this->getByID($id);
-        if (!$arrayhash) return true;
+        $values = [];
+        foreach ($keys as $key) {
+            if (is_array($keys)) $values = array_values($key);
+        }
 
-        $data = $this->encode($arrayhash);
-        if (!$data) return $this->instance->del($id);
 
-        $this->instance->transaction()->del($id)->zrem($queue, $data)->execute();
-        return true;
-    }
+        if (empty($values)) return;
 
-    public function removeOldHash($queue)
-    {
-        foreach (new Iterator\Keyspace($this->instance, "*") as $key) {
-            $pages = $this->getPages($queue);
+        foreach ($values as $key) {
+            $pages = $this->getPages();
 
-            if (empty($pages)) return $this->removeByID($queue, $key);
+            $segments = explode(":", $key);
+            if (count($segments) < 2) {
+                continue;
+            }
+
+            $id = $segments[2];
+
+            if (empty($pages)) {
+                var_dump($key);
+                $this->removeByID($id);
+                continue;
+            }
 
 
             for ($i = 1; $i <= $pages; $i++) {
 
-                $data = $this->getPaginated($queue, $i, 500);
+                $data = $this->getPaginated($i, 500);
 
-                $item = array_filter($data, function ($item) use ($key) {
+                $item = array_filter($data, function ($item) use ($id) {
 
                     $json = json_decode($item, true);
 
-                    return $json['id'] == $key;
+                    return $json['id'] == $id;
                 });
 
 
-                if (empty($item)) $this->removeByID($queue, $key);
+                if (empty($item)) $this->removeByID($id);
 
                 sleep(1);
 
             }
         }
         return null;
+    }
+
+    public function getPages($perPage = 10)
+    {
+        $total = $this->getCount();
+        if ($total) return ceil($total / $perPage);
+        return 0;
+    }
+
+    public function getPaginated($page = 1, $perPage = 10)
+    {
+        $page = $page < 1 ? 1 : $page;
+        $offset = ($page - 1) * $perPage;
+        $max = $page * $perPage;
+        return $this->instance->zrange($this->queue, $offset, $max);
     }
 }

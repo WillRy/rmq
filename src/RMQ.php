@@ -9,13 +9,30 @@ class RMQ
     /** @var Client $instance */
     public $instance = null;
 
-    public function __construct($host, $port = 6379, $persistent = "1")
+    public $queueName;
+
+    public $queue;
+
+    public function __construct($queueName, $host, $port = 6379, $persistent = "1")
     {
         Connect::config($host, $port, $persistent);
         $this->instance = Connect::getInstancePredis();
+        $this->queueName = $queueName;
+        $this->queue = $this->getQueueName($queueName);
     }
 
-    public function analyzeRequeue($data, $queue, $requeue, $max_tries, $list = true)
+    public function getQueueName(string $queue)
+    {
+        return "queue:{$queue}";
+    }
+
+    public function getHashName($id)
+    {
+        return "queue:{$this->queueName}:{$id}";
+    }
+
+
+    public function analyzeRequeue($data, $requeue, $max_tries)
     {
         if (empty($data)) return false;
 
@@ -26,7 +43,7 @@ class RMQ
         if ($requeue && $notMax) {
             $data["tries"] = (int)$data["tries"] + 1;
 
-            $this->publish($queue, $data);
+            $this->publish($data);
 
             return true;
         }
@@ -39,12 +56,6 @@ class RMQ
         return $this->instance->del($queue);
     }
 
-    public function isJson($string)
-    {
-        json_decode($string);
-        return json_last_error() === JSON_ERROR_NONE;
-    }
-
     public function decode($msg)
     {
 
@@ -53,7 +64,7 @@ class RMQ
         $data = json_decode($msg[0], true);
 
 
-        if(empty($data["id"])) return [];
+        if (empty($data)) return [];
 
         $result = [];
         foreach ($data as $key => $item) {
@@ -61,6 +72,12 @@ class RMQ
         }
 
         return $result;
+    }
+
+    public function isJson($string)
+    {
+        json_decode($string);
+        return json_last_error() === JSON_ERROR_NONE;
     }
 
     public function encode($payload)

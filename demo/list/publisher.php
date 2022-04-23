@@ -1,11 +1,13 @@
 <?php
 
-require __DIR__."/../../vendor/autoload.php";
+use WillRy\RMQ\QueueList;
 
-$rmq = new \WillRy\RMQ\QueueList("redis", 6379);
+require __DIR__ . "/../../vendor/autoload.php";
 
-for ($i = 0; $i < 300000; $i++) {
-    $rmq->publish("queue_list", [
+$rmq = new QueueList("list", "redis", 6379);
+
+for ($i = 0; $i < 300; $i++) {
+    $rmq->publish([
         "id" => $i,
         "payload" => [
             "id" => $i,

@@ -24,13 +24,6 @@ class Connect
     {
     }
 
-    /**
-     * Connect clone. Private singleton
-     */
-    private function __clone()
-    {
-    }
-
     public static function getInstancePredis(): ?Client
     {
         if (empty(self::$instanceRedis)) {
@@ -53,5 +46,12 @@ class Connect
             'port' => $port,
             'persistent' => $persistent,
         ];
+    }
+
+    /**
+     * Connect clone. Private singleton
+     */
+    private function __clone()
+    {
     }
 }

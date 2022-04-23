@@ -10,8 +10,8 @@ O gerenciador de filas permite utilizar as filas com dois tipos de dados:
 O List tem se mostrado **mais performático** para a **"entrada"** e **"saída"**
 de itens, mas **lento** para **pesquisas** e **remoção**
 
-O Set tem se mostrado **menos performático** para a **"entrada"** e **"saída"**
-de itens, mas **rapido** para **pesquisas** e **remoção**
+O Set tem se mostrado **MINIMAMENTE menos performático** para a **"entrada"** e **"saída"**
+de itens, mas **rápido** para **pesquisas** e **remoção**
 
 
 ## Como utilizar?
